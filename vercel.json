@@ -1,5 +1,0 @@
-{
-  "functions": {
-    "api/advisor.js": { "maxDuration": 60 }
-  }
-}
