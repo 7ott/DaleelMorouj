@@ -686,6 +686,9 @@ body{font-size:14.5px;letter-spacing:0}
 .top-me:hover .av{filter:brightness(1.1)}
 .top .btn.primary{margin-inline-start:auto}
 @media (max-width:900px){.top-me .av{width:34px;height:34px;font-size:.8rem}}
+
+.ver{margin:auto 0 6px;padding:0 8px;font-size:.7rem;color:var(--side-muted);opacity:.7}
+.ver + .sfoot{margin-top:0}
 </style>
 </head>
 <body>
@@ -712,7 +715,7 @@ body{font-size:14.5px;letter-spacing:0}
       <p class="err" id="loginErr" hidden></p>
       <button class="btn primary" id="loginBtn" type="submit">دخول</button>
     </form>
-    <p class="lfoot">شركة مروج العقارية · بني سويف</p>
+    <p class="lfoot">شركة مروج العقارية · بني سويف · الإصدار 5.1</p>
   </section>
 </div>
 
@@ -720,6 +723,7 @@ body{font-size:14.5px;letter-spacing:0}
   <aside class="side">
     <div class="sbrand"><div class="logo"><img src="logo.png" alt="شركة مروج العقارية"></div></div>
     <nav class="snav" id="snav" aria-label="الأقسام"></nav>
+    <p class="ver">الإصدار 5.1</p>
     <div class="sfoot"><button type="button" class="me me-btn" data-act="acct" title="حسابي: الاسم وكلمة المرور"><span class="av" id="meAv"></span><span id="meName"></span></button><button class="icon" type="button" data-act="logout">خروج</button></div>
   </aside>
   <div class="main">
