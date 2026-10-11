@@ -1265,6 +1265,11 @@ input,select,textarea{font-size:1rem}
 }
 .task .tb{cursor:pointer}
 #detail .dacts .btn{height:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 16px;font-size:.95rem;white-space:nowrap}
+.wz-new{display:grid;gap:10px;background:var(--accent-soft);border-radius:18px;padding:14px}
+.wz-new>b{font-family:var(--display);font-size:1.05rem}
+.wz-new .wz-ch.many button{min-height:52px;flex-direction:row;align-items:center;justify-content:center}
+.wz-row.wz-addnew{border-style:dashed;color:var(--accent);justify-content:center}
+.wz-new .wz-ch button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}.wz-new .wz-ch button[aria-pressed="true"] b{color:var(--on-accent)}.wz-new .wz-ch button{background:var(--surface)}
 </style>
 </head>
 <body>
@@ -1296,7 +1301,7 @@ input,select,textarea{font-size:1rem}
       <p class="err" id="loginErr" hidden></p>
       <button class="btn primary" id="loginBtn" type="submit">دخول</button>
     </form>
-    <p class="lfoot">شركة مروج العقارية · بني سويف · الإصدار 9.5</p>
+    <p class="lfoot">شركة مروج العقارية · بني سويف · الإصدار 9.6</p>
   </section>
 </div>
 
@@ -1304,7 +1309,7 @@ input,select,textarea{font-size:1rem}
   <aside class="side">
     <div class="sbrand"><div class="logo"><img src="logo.png" alt="مروج العقارية"></div></div>
     <nav class="snav" id="snav" aria-label="الأقسام"></nav>
-    <p class="ver">الإصدار 9.5</p>
+    <p class="ver">الإصدار 9.6</p>
     <div class="sfoot"><button type="button" class="me me-btn" data-act="acct" title="حسابي: الاسم وكلمة المرور"><span class="av" id="meAv"></span><span id="meName"></span></button><button class="icon" type="button" data-act="logout">خروج</button></div>
   </aside>
   <div class="main">
@@ -2534,6 +2539,7 @@ function wizSteps(t,v){
     {k:"title",q:"اسمها أو رقمها إيه؟",ui:"text",ph:()=>v.prop_type==="أرض"?"مثلاً: القطعة 555 المجاورة الأولى":"مثلاً: شقة 150م الحي الأول",req:true},
     {k:"size",q:"المساحة كام متر؟",ui:"num",ph:"مثلاً: 150",skip:true},
     {k:"price",q:"السعر كام؟",ui:"money",skip:true},
+    {k:"_src",q:"مين صاحب الوحدة؟",ui:"owner",skip:true,when:()=>isAdmin()&&!W.preset.owner_id},
     {k:"folder_id",q:"تتحط في أنهي فولدر؟",ui:"folder",skip:true,when:()=>all("folders").length>0}
   ];
   if(t==="deals")return[
@@ -2560,6 +2566,7 @@ function wizSteps(t,v){
     {k:"suf",q:"فيه كلام بعد الرقم؟",ui:"text",ph:"مثلاً: المجاورة الأولى",skip:true},
     {k:"size",q:"مساحة كل قطعة كام متر؟",ui:"num",ph:"مثلاً: 300",skip:true},
     {k:"price",q:"سعر القطعة كام؟",ui:"money",skip:true},
+    {k:"_src",q:"مين صاحب القطع دي؟",ui:"owner",skip:true,when:()=>isAdmin()},
     {k:"folder_id",q:"تتحط في أنهي فولدر؟",ui:"folder",skip:true,when:()=>all("folders").length>0},
     {k:"_ok",q:"تمام كده؟",ui:"review"}
   ];
@@ -2611,13 +2618,23 @@ function wizRender(){
     h+=`<div class="wz-money"><input class="wz-in" id="wzIn" inputmode="numeric" dir="ltr" placeholder="0" value="${val?Number(val).toLocaleString("en-US"):""}" autocomplete="off" enterkeyhint="next"><span>ج.م</span></div><p class="wz-hint" id="wzMoneyTxt">${val?esc(short(val))+" جنيه":""}</p><div class="wz-sugg">${MONEY_CH.map(([n,l])=>`<button type="button" data-ws="${n}">${l}</button>`).join("")}</div>`;
   }else if(s.ui==="pick"){
     h+=`<input class="wz-in sm" id="wzFind" type="search" placeholder="اكتب جزء من الاسم أو الرقم…" autocomplete="off"><div class="wz-list" id="wzList"></div>`;
+  }else if(s.ui==="owner"){
+    const cur=val&&val.t==="new"?val:null;
+    h+=`<p class="wz-hint">المالك أو الوسيط أو المكتب اللي جايب الوحدة. اختار من المتسجلين أو اكتب اسم جديد.</p>
+      <input class="wz-in sm" id="wzOFind" type="search" placeholder="اكتب جزء من الاسم أو الرقم…" autocomplete="off"><div class="wz-list" id="wzOList"></div>
+      <div class="wz-new" id="wzONew"${cur?"":" hidden"}><b>صاحب عرض جديد</b>
+        <div class="wz-ch many wz-kind">${[["owner","مالك"],["trader","وسيط / تاجر"]].map(([k,l])=>`<button type="button" data-wok="${k}" aria-pressed="${(cur?cur.kind:"owner")===k}"><b>${l}</b></button>`).join("")}</div>
+        <input class="wz-in sm" id="wzON" placeholder="الاسم" value="${esc(cur?cur.name:"")}" autocomplete="off">
+        <input class="wz-in sm" id="wzOP" type="tel" inputmode="tel" dir="ltr" placeholder="رقم الموبايل (اختياري)" value="${esc(cur?cur.phone||"":"")}" autocomplete="off">
+        <small class="wz-hint">هيتسجل كمان في العملاء عشان تلاقيه بعدين.</small></div>`;
+    $("wizNext").hidden=!cur;
   }else if(s.ui==="folder"){
     const rows=[];const walk=(pid,d)=>fChildren(pid).forEach(f=>{rows.push([f,d]);walk(f.id,d+1)});walk(null,0);
     h+=`<div class="wz-list">${`<button type="button" class="wz-row" data-wv=""${!val?' aria-pressed="true"':""}><b>${esc(s.none||"بدون فولدر")}</b></button>`}${rows.map(([f,d])=>`<button type="button" class="wz-row" data-wv="${f.id}" style="padding-inline-start:${16+d*22}px" aria-pressed="${val===f.id}"><b>${d?"↳ ":""}${esc(f.name)}</b>${f.kind?`<small>${esc(f.kind)}</small>`:""}</button>`).join("")}</div>`;
     $("wizNext").hidden=true;
   }else if(s.ui==="review"){
     const it=bulkItems(),fid=v_fold();
-    h+=it.err?`<p class="err">${esc(it.err)}</p>`:`<div class="wz-review"><p><b>${it.ok.length}</b> ${esc(W.v.prop_type||"وحدة")} هتتضاف${fid?` في «${esc(fPathTxt(fid))}»`:""}${it.dup?` · <span class="warn-t">${it.dup} موجودة قبل كده هتتخطى</span>`:""}</p><ul>${(it.ok.length>4?[it.ok[0],it.ok[1],{title:"…"},it.ok[it.ok.length-1]]:it.ok).map(x=>`<li>${esc(x.title)}</li>`).join("")}</ul></div>`;
+    h+=it.err?`<p class="err">${esc(it.err)}</p>`:`<div class="wz-review"><p><b>${it.ok.length}</b> ${esc(W.v.prop_type||"وحدة")} هتتضاف${fid?` في «${esc(fPathTxt(fid))}»`:""}${W.v._src?` · صاحبها: <b>${esc(srcLabelW(W.v._src))}</b>`:""}${it.dup?` · <span class="warn-t">${it.dup} موجودة قبل كده هتتخطى</span>`:""}</p><ul>${(it.ok.length>4?[it.ok[0],it.ok[1],{title:"…"},it.ok[it.ok.length-1]]:it.ok).map(x=>`<li>${esc(x.title)}</li>`).join("")}</ul></div>`;
     $("wizNext").textContent=it.ok.length?`ضيف ${it.ok.length} ✓`:"رجوع";
   }else if(s.ui==="when"){
     const opts=[[0,"النهارده"],[1,"بكره"],[2,"بعد يومين"],[3,"بعد 3 أيام"],[7,"الأسبوع الجاي"]];
@@ -2626,6 +2643,7 @@ function wizRender(){
   h+=`<p class="err" id="wzErr" hidden></p>`;
   box.innerHTML=h;wizFoot();
   if(s.ui==="pick")wizPickList("");
+  if(s.ui==="owner")wizOwnerList("");
   const inp=$("wzIn")||$("wzFind");if(inp&&s.ui!=="pick")setTimeout(()=>{inp.focus();try{inp.setSelectionRange(inp.value.length,inp.value.length)}catch(e){}},60);
   else if(inp&&window.matchMedia("(min-width:900px)").matches)setTimeout(()=>inp.focus(),60);
 }
@@ -2638,6 +2656,23 @@ function wizPickList(q){
   const val=W.v[s.k];
   $("wzList").innerHTML=rows.length?rows.slice(0,8).map(r=>`<button type="button" class="wz-row" data-wv="${r.id}" aria-pressed="${val===r.id}"><b>${esc(s.rel==="contacts"?r.name:r.title)}</b><small>${esc(s.rel==="contacts"?[TYPES[r.type],r.phone].filter(Boolean).join(" · "):[r.code,r.area,r.price?short(r.price):""].filter(Boolean).join(" · "))}</small></button>`).join("")+(rows.length>8?`<p class="wz-hint">اكتب في البحث عشان تلاقي الباقي (${rows.length})</p>`:""):`<p class="wz-hint">${q?"مفيش نتيجة.":esc(s.empty||"مفيش حاجة هنا لسه.")}</p>`;
 }
+function wizOwnerList(q){
+  q=norm(q||"");const val=W.v._src;
+  let cs=all("contacts").filter(c=>!q||norm([c.name,c.phone,c.phone2].join(" ")).includes(q));
+  cs.sort((a,b)=>((a.type==="buyer")-(b.type==="buyer"))||(b.updated_at||b.created_at||"").localeCompare(a.updated_at||a.created_at||""));
+  const os=all("offices").filter(o=>!q||norm([o.name,o.phone].join(" ")).includes(q));
+  const rows=cs.slice(0,6).map(c=>[`c:${c.id}`,c.name,[TYPES[c.type],c.phone].filter(Boolean).join(" · ")]).concat(os.slice(0,3).map(o=>[`o:${o.id}`,o.name,["مكتب عقاري",o.phone].filter(Boolean).join(" · ")]));
+  const sel=val&&val.t!=="new"?val.t+":"+val.id:"";
+  $("wzOList").innerHTML=`<button type="button" class="wz-row wz-addnew" data-wonew="1"><b>+ ${q?`سجّل «${esc($("wzOFind").value.trim())}» كاسم جديد`:"اسم جديد مش متسجل"}</b></button>`
+    +rows.map(([k,n,sub])=>`<button type="button" class="wz-row" data-wo="${k}" aria-pressed="${sel===k}"><b>${esc(n)}</b><small>${esc(sub)}</small></button>`).join("");
+}
+function srcLabelW(v){if(!v)return"";if(v.t==="new")return v.name;const r=v.t==="c"?get("contacts",v.id):get("offices",v.id);return r?r.name:""}
+async function wizResolveSrc(v){/* بيرجع {owner_id, ps} */
+  const s=v._src;if(!s)return{owner_id:null,ps:null};
+  if(s.t==="c")return{owner_id:s.id,ps:null};
+  if(s.t==="o"){const o=get("offices",s.id);return{owner_id:null,ps:o?{office_id:o.id,kind:"مكتب",name:o.name,phone:o.phone||null}:null}}
+  const c=await ins("contacts",{type:s.kind==="trader"?"trader":"owner",name:s.name,phone:s.phone||null,area:v.area||null,assigned_to:S.me});
+  await logAct({kind:"system",body:`تم إضافة ${TYPES[c.type]}`,contact_id:c.id});W.v._src={t:"c",id:c.id};return{owner_id:c.id,ps:null}}
 function wizErr(m){const e=$("wzErr");if(e){e.textContent=m;e.hidden=false}}
 function wizSet(k,v){W.v[k]=v}
 function wizNext(){
@@ -2648,6 +2683,8 @@ function wizNext(){
     if(s.ui==="tel"&&v&&v.replace(/\D/g,"").length<8){wizErr("الرقم ده ناقص. اتأكد منه.");return}
     wizSet(s.k,v===""?null:v);
   }
+  if(s.ui==="owner"){const box=$("wzONew");if(box&&!box.hidden){const n=$("wzON").value.trim();if(n.length<2){wizErr("اكتب اسم صاحب العرض");return}
+      const ph=toLat($("wzOP").value).replace(/[^\d+\s-]/g,"").trim();const kd=(box.querySelector("[data-wok][aria-pressed=true]")||{dataset:{wok:"owner"}}).dataset.wok;wizSet("_src",{t:"new",name:n,phone:ph||null,kind:kd})}}
   if(s.ui==="when"){const dt=$("wzDt").value;if(dt)wizSet("due_at",new Date(dt).toISOString());if(!W.v.due_at){wizErr("اختار ميعاد");return}}
   if((s.ui==="pick"||s.ui==="choice")&&s.req&&!W.v[s.k]){wizErr("اختار واحد");return}
   if(s.ui==="review"){const it=bulkItems();if(it.err||!it.ok.length){W.i=Math.max(0,steps.findIndex(x=>x.k==="from"));wizRender();wizErr(it.err||"كل الأسماء دي موجودة قبل كده. غيّر الأرقام.");return}}
@@ -2672,7 +2709,9 @@ async function wizSave(){
     }else if(t==="properties"){
       const n=all("properties").map(p=>parseInt(String(p.code||"").replace(/\D/g,""),10)).filter(x=>!isNaN(x));
       const row={title:v.title,prop_type:v.prop_type||null,size:v.size||null,price:v.price||null,folder_id:v.folder_id||null,area:v.area||null,status:"available",deal_kind:"بيع",code:"M-"+String((n.length?Math.max(...n):1000)+1),owner_id:v.owner_id||null};
+      const src=await wizResolveSrc(v);if(src.owner_id)row.owner_id=src.owner_id;
       saved=await ins("properties",row);await logAct({kind:"system",body:"تم تسجيل الوحدة",property_id:saved.id});
+      if(src.ps)await syncSrc(saved.id,src.ps);
       label=[saved.title,saved.price?short(saved.price)+" ج.م":""].filter(Boolean).join(" · ");
     }else if(t==="deals"){
       const b=get("contacts",v.buyer_id);
@@ -2688,8 +2727,11 @@ async function wizSave(){
       const it=bulkItems();if(it.err||!it.ok.length){back(it.err||"كل الأسماء دي موجودة قبل كده.");return}
       const fid=v_fold(),ns=all("properties").map(p=>parseInt(String(p.code||"").replace(/\D/g,""),10)).filter(x=>!isNaN(x));let code=ns.length?Math.max(...ns):1000;
       let area=null;if(fid){const fk=fPath(fid).reverse().filter(x=>["حي","منطقة","مدينة","مجاورة"].includes(x.kind));if(fk.length)area=fk[0].name}
-      const rows=it.ok.map(x=>({title:x.title,prop_type:v.prop_type||null,size:v.size||null,price:v.price||null,folder_id:fid,area,status:"available",deal_kind:"بيع",commission_pct:null,code:"M-"+(++code),created_by:S.me}));
-      for(let i=0;i<rows.length;i+=100){const{data,error}=await S.sb.from("properties").insert(rows.slice(i,i+100)).select();if(error)throw error;(data||[]).forEach(r=>S.data.properties.set(r.id,r))}
+      const src=await wizResolveSrc(v);
+      const rows=it.ok.map(x=>({title:x.title,prop_type:v.prop_type||null,size:v.size||null,price:v.price||null,folder_id:fid,area,status:"available",deal_kind:"بيع",commission_pct:null,owner_id:src.owner_id||null,code:"M-"+(++code),created_by:S.me}));
+      const made=[];
+      for(let i=0;i<rows.length;i+=100){const{data,error}=await S.sb.from("properties").insert(rows.slice(i,i+100)).select();if(error)throw error;(data||[]).forEach(r=>{S.data.properties.set(r.id,r);made.push(r.id)})}
+      if(src.ps)for(let i=0;i<made.length;i+=100){const{data,error}=await S.sb.from("property_sources").insert(made.slice(i,i+100).map(id=>({property_id:id,...src.ps,created_by:S.me}))).select();if(error)throw error;(data||[]).forEach(r=>S.data.property_sources.set(r.id,r))}
       S.ver++;if(fid)S.f.pfold=fid;renderAll();saved={id:null};label=`${rows.length} ${v.prop_type||"وحدة"}${fid?" في «"+fPathTxt(fid)+"»":""}`;
     }else if(t==="tasks"){
       const c=v.contact_id&&get("contacts",v.contact_id);
@@ -2708,6 +2750,9 @@ function closeWizard(){$("wizSheet").hidden=true;W.done=null}
 $("wizSheet").addEventListener("click",e=>{
   if(e.target.id==="wizSheet"){closeWizard();return}
   const steps=wizActive(),s=steps[W.i];
+  const wo=e.target.closest("[data-wo]");if(wo&&s){const [tt,id]=wo.dataset.wo.split(":");wizSet("_src",{t:tt,id});$("wzOList").querySelectorAll("[data-wo]").forEach(b=>b.setAttribute("aria-pressed",String(b===wo)));setTimeout(()=>{W.i++;wizRender()},160);return}
+  const wn=e.target.closest("[data-wonew]");if(wn){const box=$("wzONew");box.hidden=false;const q=$("wzOFind").value.trim();if(q&&!$("wzON").value){if(/^[\d\s+٠-٩-]+$/.test(q))$("wzOP").value=q;else $("wzON").value=q}$("wizNext").hidden=false;$("wizNext").textContent=W.i===wizActive().length-1?"حفظ ✓":"التالي";setTimeout(()=>($("wzON").value?$("wzOP"):$("wzON")).focus(),40);return}
+  const wk=e.target.closest("[data-wok]");if(wk){wk.parentElement.querySelectorAll("[data-wok]").forEach(b=>b.setAttribute("aria-pressed",String(b===wk)));return}
   const c=e.target.closest("[data-wv]");if(c&&s){wizSet(s.k,c.dataset.wv||null);if(s.k==="property_id"&&W.t==="deals"&&c.dataset.wv){const p=get("properties",c.dataset.wv);if(p&&p.price&&!W.v.value)W.v.value=p.price}
     $("wizBody").querySelectorAll("[data-wv]").forEach(b=>b.setAttribute("aria-pressed",String(b===c)));setTimeout(()=>{W.i++;wizRender()},160);return}
   const sg=e.target.closest("[data-ws]");if(sg){const el=$("wzIn");if(s.ui==="money"){el.value=Number(sg.dataset.ws).toLocaleString("en-US");$("wzMoneyTxt").textContent=short(sg.dataset.ws)+" جنيه"}else el.value=sg.dataset.ws;setTimeout(wizNext,120);return}
@@ -2715,17 +2760,18 @@ $("wizSheet").addEventListener("click",e=>{
 });
 $("wizSheet").addEventListener("input",e=>{
   if(e.target.id==="wzFind")wizPickList(e.target.value);
+  if(e.target.id==="wzOFind")wizOwnerList(e.target.value);
   const s=wizActive()[W.i];
   if(e.target.id==="wzIn"&&s&&s.ui==="money"){const raw=toLat(e.target.value).replace(/[^\d]/g,"");e.target.value=raw?Number(raw).toLocaleString("en-US"):"";$("wzMoneyTxt").textContent=raw?short(raw)+" جنيه":""}
   if(e.target.id==="wzIn"){const er=$("wzErr");if(er)er.hidden=true}
 });
 $("wizSheet").addEventListener("change",e=>{if(e.target.id==="wzMore"&&e.target.value){const s=wizActive()[W.i];wizSet(s.k,e.target.value);W.i++;wizRender()}});
-$("wizSheet").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.target.id==="wzIn")){e.preventDefault();wizNext()}else if(e.key==="Enter"&&e.target.id==="wzFind"){e.preventDefault();const f=$("wzList").querySelector("[data-wv]");if(f)f.click()}});
+$("wizSheet").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.target.id==="wzIn"||e.target.id==="wzON"||e.target.id==="wzOP")){e.preventDefault();wizNext()}else if(e.key==="Enter"&&e.target.id==="wzFind"){e.preventDefault();const f=$("wzList").querySelector("[data-wv]");if(f)f.click()}});
 $("wizNext").addEventListener("click",wizNext);
 $("wizSkip").addEventListener("click",wizSkipStep);
 $("wizBack").addEventListener("click",()=>{if(W.i>0){W.i--;W.dupOK=false;wizRender()}});
 $("wizClose").addEventListener("click",closeWizard);
-$("wizFull").addEventListener("click",()=>{if(W.t==="bulk"){closeWizard();openBulk();return}const t=W.t,v={...W.v};delete v._kind;if(t==="tasks"&&W.v._kind&&!v.title)v.title=W.v._kind;Object.keys(v).forEach(k=>{if(v[k]===null||v[k]===undefined)delete v[k]});closeWizard();openForm(t,null,v)});
+$("wizFull").addEventListener("click",()=>{if(W.t==="bulk"){closeWizard();openBulk();return}const t=W.t,v={...W.v};delete v._kind;if(v._src&&v._src.t==="c")v.owner_id=v._src.id;delete v._src;if(t==="tasks"&&W.v._kind&&!v.title)v.title=W.v._kind;Object.keys(v).forEach(k=>{if(v[k]===null||v[k]===undefined)delete v[k]});closeWizard();openForm(t,null,v)});
 
 /* ================= بعد المكالمة: "حصل إيه؟" + لستة "اتصل بيهم النهارده" ================= */
 const CALL_ICO='<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>';
