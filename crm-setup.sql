@@ -470,3 +470,71 @@ create policy "delete admin only" on public.folders for delete to authenticated 
 do $$ begin
   alter publication supabase_realtime add table public.folders;
 exception when duplicate_object then null; end $$;
+
+-- ================================================================
+-- الإعلانات الممولة: الحملات والصرف (للمدير بس)
+-- كل عميل ممكن يتربط بالحملة اللي جابته، عشان نعرف تكلفة العميل والبيعة.
+-- ================================================================
+create table if not exists public.ad_campaigns (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  platform text,
+  promo text,
+  budget numeric,
+  start_date date default current_date,
+  end_date date,
+  status text not null default 'active',
+  notes text,
+  created_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create table if not exists public.ad_spend (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid references public.ad_campaigns(id) on delete cascade,
+  amount numeric not null check (amount >= 0),
+  spent_on date not null default current_date,
+  leads integer,
+  notes text,
+  created_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.contacts add column if not exists ad_campaign_id uuid references public.ad_campaigns(id) on delete set null;
+create index if not exists contacts_campaign_idx on public.contacts(ad_campaign_id);
+create index if not exists ad_spend_campaign_idx on public.ad_spend(campaign_id);
+drop trigger if exists ad_campaigns_touch on public.ad_campaigns;
+create trigger ad_campaigns_touch before update on public.ad_campaigns for each row execute function public.touch_updated_at();
+drop trigger if exists ad_spend_touch on public.ad_spend;
+create trigger ad_spend_touch before update on public.ad_spend for each row execute function public.touch_updated_at();
+alter table public.ad_campaigns enable row level security;
+alter table public.ad_spend enable row level security;
+drop policy if exists "admin only" on public.ad_campaigns;
+create policy "admin only" on public.ad_campaigns for all to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "admin only" on public.ad_spend;
+create policy "admin only" on public.ad_spend for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- السيلز محتاج يشوف أسماء الحملات الشغالة بس (من غير أي أرقام صرف) عشان يربط العميل بالإعلان
+create or replace function public.active_campaigns()
+returns table(id uuid, name text, platform text)
+language sql stable security definer set search_path = public as $$
+  select c.id, c.name, c.platform from public.ad_campaigns c
+  where public.my_role() in ('admin','sales') and c.status = 'active'
+  order by c.created_at desc
+$$;
+grant execute on function public.active_campaigns() to authenticated;
+
+do $$ begin
+  alter publication supabase_realtime add table public.ad_campaigns;
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table public.ad_spend;
+exception when duplicate_object then null; end $$;
+
+-- ================================================================
+-- أهمية الوحدة: مهم جدًا / مهم / عادي (بتظهر للتذكير في الرئيسية)
+-- ================================================================
+alter table public.properties add column if not exists importance text;
+do $$ begin
+  alter table public.properties add constraint properties_importance_chk check (importance is null or importance in ('high','mid','normal'));
+exception when duplicate_object then null; end $$;
